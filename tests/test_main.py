@@ -1,7 +1,7 @@
 import pytest
-from utils.custom_logger import get_logger
+from wpctl.utils.custom_logger import get_logger
 
-from main import main
+from wpctl.main import main
 
 
 def test_main(capsys):
