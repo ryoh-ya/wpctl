@@ -1,22 +1,70 @@
-# TODO:リポジトリ名
+# wpctl
 
+WordPress APIを活用して、記事を投稿・管理するCLIツール。
 
-<ここにプロジェクトの説明を記載してください>
+## 概要
 
+MarkDown / テキスト / HTMLファイルを読み込み、WordPress REST APIを通じて記事の投稿・更新を行います。
+
+## 機能
+
+| 機能     | コマンド            | 説明                                       |
+| -------- | ------------------- | ------------------------------------------ |
+| 記事投稿 | `wpctl post create` | Markdownなどのファイルを記事として投稿する |
+| 記事更新 | `wpctl post update` | 既存の記事をファイルの内容で更新する       |
+
+## インストール
+
+```sh
+pip install .
+```
+
+## 使い方
+
+### 記事を投稿する
+
+```sh
+wpctl post create [-t "記事のタイトル"] <FilePath>
+```
+
+| 引数 | オプション | 必須 | 説明 |
+| ---- | ---------- | ---- | ---- |
+| `FilePath` | | true | 投稿するファイルのパス |
+| `title` | `--title`, `-t` | | 記事タイトル（デフォルト: `タイトル未設定`）|
+
+### 記事を更新する
+
+```sh
+wpctl post update --id <ID> [-t "記事のタイトル"] <FilePath>
+```
+
+| 引数 | オプション | 必須 | 説明 |
+| ---- | ---------- | ---- | ---- |
+| `FilePath` | | true | 投稿するファイルのパス |
+| `id` | `--id` | true | 更新対象の記事ID |
+| `title` | `--title`, `-t` | | 記事タイトル（デフォルト: `タイトル未設定`）|
+
+## 環境変数
+
+| 環境変数          | 必須 | 説明                        |
+| ----------------- | ---- | --------------------------- |
+| `WP_USER`         | true | WordPressのユーザー名       |
+| `WP_APP_PASSWORD` | true | WordPressのアプリパスワード |
+
+> `.env` ファイルは非対応です。あらかじめシェルの環境変数に設定してください。
+
+## 対応ファイル形式
+
+- `.txt`
+- `.md`
+- `.html`
 
 ## Tool
 
 ### Test
 
-テスト用のライブラリをインストールしてください。
-
 ```sh
 pip install -r requirements-dev.txt
-```
-
-テストを実行する
-
-```sh
 pytest tests/
 # ログを出力する場合
 # pytest -s tests/
@@ -24,32 +72,9 @@ pytest tests/
 
 ### Lint
 
-
 ```sh
 pip install -r requirements-dev.txt
-```
-
-**lintを実行する方法**
-
-```sh
 ruff check .
-```
-
-例えば使われていない変数が存在する場合はなどは以下のように表示される
-
-```log
-F841 Local variable `x` is assigned to but never used
- --> src/main.py:7:5
-  |
-6 | def func_wrong():
-7 |     x = 1 
-  |     ^
-  |
-help: Remove assignment to unused variable `x`
-```
-
-**自動生成も実行する場合**
-
-```sh
+# 自動修正する場合
 ruff check . --fix
 ```

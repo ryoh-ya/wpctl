@@ -1,7 +1,7 @@
 [project]
-name = "プロジェクト名を設定してください"
+name = "wpctl"
 version = "0.1.0"
-description = "プロジェクトの説明"
+description = "WordPress APIを活用して記事を投稿・管理するCLIツール"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []
