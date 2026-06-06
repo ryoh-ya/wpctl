@@ -49,7 +49,7 @@ wpctl post create [-t "記事のタイトル" ] <FilePath>
 記事を投稿する
 
 ```sh
-wpctl post  update -id 1.  [-t "記事のタイトル"] <FilePath>
+wpctl post update --id <ID> [-t "記事のタイトル"] <FilePath>
 ```
 
 **入力値**
@@ -57,7 +57,7 @@ wpctl post  update -id 1.  [-t "記事のタイトル"] <FilePath>
 | 入力値     | 引数           | 必須 | 内容                                                 |
 | ---------- | -------------- | ---- | ---------------------------------------------------- |
 | `FilePath` |                | true | 記事投稿するファイルパスを設定する                   |
-| `id`       | `--d`          | true | 更新する場合にidを指定します                         |
+| `id`       | `--id`         | true | 更新する場合にidを指定します（整数）                 |
 | `title`    | `--title`,`-t` |      | 記事のタイトルを指定する(デフォルト`タイトル未設定`) |
 
 **出力値**
