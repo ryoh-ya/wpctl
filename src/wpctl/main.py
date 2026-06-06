@@ -44,8 +44,8 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     create_parser.add_argument(
         "--title", "-t",
-        default="タイトル未設定",
-        help="記事のタイトル（デフォルト: タイトル未設定）",
+        default=None,
+        help="タイトル（省略時: Markdownの第一見出し / デフォルト: タイトル未設定）",
     )
 
     update_parser = post_subparsers.add_parser("update", help="記事を更新する")
@@ -57,8 +57,8 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     update_parser.add_argument(
         "--title", "-t",
-        default="タイトル未設定",
-        help="記事のタイトル（デフォルト: タイトル未設定）",
+        default=None,
+        help="タイトル（省略時: Markdownの第一見出し / デフォルト: タイトル未設定）",
     )
 
     return parser

@@ -1,6 +1,12 @@
 import pytest
 
-from wpctl.libs.file_reader import SUPPORTED_EXTENSIONS, FileReadError, read_file
+from wpctl.libs.file_reader import (
+    DEFAULT_TITLE,
+    SUPPORTED_EXTENSIONS,
+    FileReadError,
+    read_file,
+    resolve_title,
+)
 from wpctl.libs.md_to_html import convert
 
 
@@ -98,3 +104,103 @@ class TestConvertMarkdown:
         md = "```python\nprint('hello')\n```"
         result = convert(md)
         assert "<code" in result
+
+
+class TestResolveTitle:
+    """resolve_title() のタイトル解決優先順位を確認する。"""
+
+    def test_explicit_title_wins(self, tmp_path):
+        """-t で指定したタイトルが最優先されること。"""
+        f = tmp_path / "article.md"
+        f.write_text("# ファイルの見出し\n\n本文", encoding="utf-8")
+        result = resolve_title(str(f), "引数のタイトル")
+        assert result == "引数のタイトル"
+
+    def test_h1_extracted_when_no_title(self, tmp_path):
+        """タイトル未指定の場合、# 第一見出しが使われること。"""
+        f = tmp_path / "article.md"
+        f.write_text("# 記事の見出し\n\n本文", encoding="utf-8")
+        result = resolve_title(str(f), None)
+        assert result == "記事の見出し"
+
+    def test_second_h1_ignored(self, tmp_path):
+        """複数の # 見出しがある場合、最初のものが使われること。"""
+        f = tmp_path / "article.md"
+        f.write_text("# 第一見出し\n\n## 第二見出し\n\n# 別の第一見出し", encoding="utf-8")
+        result = resolve_title(str(f), None)
+        assert result == "第一見出し"
+
+    def test_default_when_no_h1_in_md(self, tmp_path):
+        """# 見出しがない .md ファイルはデフォルトタイトルになること。"""
+        f = tmp_path / "article.md"
+        f.write_text("## 第二見出しのみ\n\n本文", encoding="utf-8")
+        result = resolve_title(str(f), None)
+        assert result == DEFAULT_TITLE
+
+    def test_default_for_txt_file(self, tmp_path):
+        """.txt ファイルはデフォルトタイトルになること。"""
+        f = tmp_path / "article.txt"
+        f.write_text("# これは見出しではない", encoding="utf-8")
+        result = resolve_title(str(f), None)
+        assert result == DEFAULT_TITLE
+
+    def test_default_for_html_file(self, tmp_path):
+        """.html ファイルはデフォルトタイトルになること。"""
+        f = tmp_path / "article.html"
+        f.write_text("<h1>見出し</h1>", encoding="utf-8")
+        result = resolve_title(str(f), None)
+        assert result == DEFAULT_TITLE
+
+    def test_h1_stripped(self, tmp_path):
+        """# 見出しの前後の空白が除去されること。"""
+        f = tmp_path / "article.md"
+        f.write_text("#   空白あり見出し   \n\n本文", encoding="utf-8")
+        result = resolve_title(str(f), None)
+        assert result == "空白あり見出し"
+
+    def test_nonexistent_file_returns_default(self):
+        """存在しないファイルはデフォルトタイトルになること。"""
+        result = resolve_title("/nonexistent/file.md", None)
+        assert result == DEFAULT_TITLE
+
+
+class TestReadFileStripH1:
+    """read_file() の strip_h1 オプションを確認する。"""
+
+    def test_strip_h1_removes_heading_from_content(self, tmp_path):
+        """strip_h1=True のとき H1 が本文から除去されること。"""
+        f = tmp_path / "article.md"
+        f.write_text("# 見出し\n\n本文の段落", encoding="utf-8")
+        result = read_file(str(f), strip_h1=True)
+        assert "<h1>" not in result
+        assert "<p>本文の段落</p>" in result
+
+    def test_strip_h1_false_keeps_heading(self, tmp_path):
+        """strip_h1=False（デフォルト）のとき H1 が本文に残ること。"""
+        f = tmp_path / "article.md"
+        f.write_text("# 見出し\n\n本文の段落", encoding="utf-8")
+        result = read_file(str(f), strip_h1=False)
+        assert "<h1>見出し</h1>" in result
+
+    def test_strip_h1_no_heading_in_file(self, tmp_path):
+        """H1 がないファイルで strip_h1=True でも正常に動作すること。"""
+        f = tmp_path / "article.md"
+        f.write_text("## 第二見出し\n\n本文", encoding="utf-8")
+        result = read_file(str(f), strip_h1=True)
+        assert "<h2>" in result
+        assert "<p>本文</p>" in result
+
+    def test_strip_h1_only_removes_first(self, tmp_path):
+        """strip_h1=True のとき最初の H1 のみ除去されること。"""
+        f = tmp_path / "article.md"
+        f.write_text("# 第一見出し\n\n本文\n\n# 第二の見出し", encoding="utf-8")
+        result = read_file(str(f), strip_h1=True)
+        assert "第一見出し" not in result
+        assert "<h1>第二の見出し</h1>" in result
+
+    def test_strip_h1_ignored_for_txt(self, tmp_path):
+        """strip_h1=True でも .txt ファイルは変更されないこと。"""
+        f = tmp_path / "article.txt"
+        f.write_text("# これはテキスト", encoding="utf-8")
+        result = read_file(str(f), strip_h1=True)
+        assert result == "# これはテキスト"

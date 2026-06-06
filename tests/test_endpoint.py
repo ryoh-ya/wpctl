@@ -19,7 +19,7 @@ class TestBuildParser:
         assert args.command == "post"
         assert args.subcommand == "create"
         assert args.file_path == "article.md"
-        assert args.title == "タイトル未設定"
+        assert args.title is None
 
     def test_post_create_with_title_long(self):
         """post create に --title を渡した場合にタイトルが設定されること。"""
@@ -49,7 +49,7 @@ class TestBuildParser:
         assert args.subcommand == "update"
         assert args.post_id == 42
         assert args.file_path == "article.md"
-        assert args.title == "タイトル未設定"
+        assert args.title is None
 
     def test_post_update_with_title(self):
         """post update に --title を渡した場合にタイトルが設定されること。"""
