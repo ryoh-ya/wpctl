@@ -1,5 +1,8 @@
 import argparse
+import sys
 
+from wpctl.api.api_wordpress import WordPressAPIError
+from wpctl.libs.file_reader import FileReadError
 from wpctl.utils.custom_logger import get_logger
 
 logger = get_logger(__name__)
@@ -32,19 +35,23 @@ def _run_post(args: argparse.Namespace) -> None:
 
 
 def _run_post_create(args: argparse.Namespace) -> None:
-    """記事投稿のロジック。
+    """記事を投稿する。
 
     Args:
         args: argparseで解析された引数
             file_path: 投稿するファイルのパス
             title: 記事のタイトル
     """
-    logger.info(f"post create: file={args.file_path}, title={args.title}")
-    # TODO: WordPress API 連携
+    from wpctl.commands.create import run as create_run
+    try:
+        create_run(file_path=args.file_path, title=args.title)
+    except (FileReadError, WordPressAPIError) as e:
+        logger.error(str(e))
+        sys.exit(1)
 
 
 def _run_post_update(args: argparse.Namespace) -> None:
-    """記事更新のロジック。
+    """記事を更新する。
 
     Args:
         args: argparseで解析された引数
@@ -52,7 +59,9 @@ def _run_post_update(args: argparse.Namespace) -> None:
             post_id: 更新する記事のID
             title: 記事のタイトル
     """
-    logger.info(
-        f"post update: id={args.post_id}, file={args.file_path}, title={args.title}"
-    )
-    # TODO: WordPress API 連携
+    from wpctl.commands.update import run as update_run
+    try:
+        update_run(file_path=args.file_path, post_id=args.post_id, title=args.title)
+    except (FileReadError, WordPressAPIError) as e:
+        logger.error(str(e))
+        sys.exit(1)

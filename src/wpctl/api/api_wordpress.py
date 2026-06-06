@@ -1,108 +1,104 @@
 import os
+
 import requests
 
 from wpctl.utils.custom_logger import get_logger
 
-logger = get_logger()
+logger = get_logger(__name__)
+
+
+class WordPressAPIError(Exception):
+    """WordPress API 呼び出しエラー。"""
 
 
 class ApiWordpress:
-    """
-    WordPress REST APIを利用して記事の投稿や更新を行うクラス
+    """WordPress REST API クライアント。
 
     Notes:
-        - WordPress REST APIのエンドポイントは通常 /wp-json/wp/v2/
+        WordPress REST API のエンドポイントは通常 /wp-json/wp/v2/
     """
 
-    WP_SITE_URL = os.getenv("WP_SITE_URL")
-    WP_USER = os.getenv("WP_USER")
-    WP_APP_PASSWORD = os.getenv("WP_APP_PASSWORD")
+    def __init__(self) -> None:
+        self._site_url = os.environ["WP_SITE_URL"].rstrip("/")
+        self._auth = (os.environ["WP_USER"], os.environ["WP_APP_PASSWORD"])
 
-    @classmethod
-    def _get_headers(cls) -> dict:
-        """
-        ヘッダー情報を取得する
+    def get_me(self) -> dict:
+        """認証情報の疎通確認。
 
         Returns:
-            dict: APIリクエスト用のヘッダー情報
-        """
-        return {
-            "Content-Type": "application/json",
-        }
+            認証ユーザーの情報
 
-    @classmethod
-    def get_me(cls):
-        """認証情報が正しいか確認するためのテストメソッド"""
-        url = f"{cls.WP_SITE_URL}/wp-json/wp/v2/users/me"
-        response = requests.get(url, auth=(cls.WP_USER, cls.WP_APP_PASSWORD))
-        response.raise_for_status()
+        Raises:
+            WordPressAPIError: API呼び出しに失敗した場合
+        """
+        url = f"{self._site_url}/wp-json/wp/v2/users/me"
+        try:
+            response = requests.get(url, auth=self._auth)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"認証に失敗しました: {e}")
+            raise WordPressAPIError(f"認証に失敗しました: {e}") from e
         logger.info(
             f"Authentication successful for user: {response.json().get('name')}"
         )
         return response.json()
 
-    @classmethod
     def create_post(
-        cls,
+        self,
         title: str,
         content: str,
-        categories: list[int] = None,
-        status: str = "draft",
+        status: str = "publish",
     ) -> dict:
-        """新しい記事を作成する
+        """新しい記事を投稿する。
 
         Args:
-            title (str): 記事のタイトル
-            content (str): 記事の内容
-            categories (list[int], optional): カテゴリーIDのリスト。デフォルトはNone
-            status (str, optional): 記事のステータス(例: 'draft', 'publish')
-        Returns:
-            dict: 作成された記事の情報
-        """
-        url = f"{cls.WP_SITE_URL}/wp-json/wp/v2/posts"
-        payload = {
-            "title": title,
-            "content": content,
-            "status": status,  # 下書き状態で投稿
-        }
-        if categories:
-            payload["categories"] = categories
+            title: 記事のタイトル
+            content: 記事の内容（HTML）
+            status: 記事のステータス（'publish' または 'draft'）
 
-        response = requests.post(
-            url, json=payload, auth=(cls.WP_USER, cls.WP_APP_PASSWORD)
-        )
-        response.raise_for_status()
+        Returns:
+            作成された記事の情報
+
+        Raises:
+            WordPressAPIError: API呼び出しに失敗した場合
+        """
+        url = f"{self._site_url}/wp-json/wp/v2/posts"
+        payload = {"title": title, "content": content, "status": status}
+        try:
+            response = requests.post(url, json=payload, auth=self._auth)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"記事の投稿に失敗しました: {e}")
+            raise WordPressAPIError(f"記事の投稿に失敗しました: {e}") from e
         logger.info(f"Post created successfully: {response.json().get('link')}")
         return response.json()
 
-    @classmethod
     def update_post(
-        cls,
+        self,
         post_id: int,
-        title: str = None,
-        content: str = None,
-        categories: list[int] = None,
+        title: str,
+        content: str,
     ) -> dict:
-        """既存の記事を更新する
+        """既存の記事を更新する。
 
         Args:
-            post_id (int): 更新する記事のID
-            title (str, optional): 更新したいタイトル
-            content (str, optional): 更新したい内容
-            categories (list[int], optional): 更新したいカテゴリーIDのリスト
-        """
-        url = f"{cls.WP_SITE_URL}/wp-json/wp/v2/posts/{post_id}"
-        payload = {}
-        if title:
-            payload["title"] = title
-        if content:
-            payload["content"] = content
-        if categories is not None:
-            payload["categories"] = categories
+            post_id: 更新する記事のID
+            title: 更新後のタイトル
+            content: 更新後の内容（HTML）
 
-        response = requests.post(
-            url, json=payload, auth=(cls.WP_USER, cls.WP_APP_PASSWORD)
-        )
-        response.raise_for_status()
+        Returns:
+            更新された記事の情報
+
+        Raises:
+            WordPressAPIError: API呼び出しに失敗した場合
+        """
+        url = f"{self._site_url}/wp-json/wp/v2/posts/{post_id}"
+        payload = {"title": title, "content": content}
+        try:
+            response = requests.post(url, json=payload, auth=self._auth)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"記事の更新に失敗しました: id={post_id}, {e}")
+            raise WordPressAPIError(f"記事の更新に失敗しました: {e}") from e
         logger.info(f"Post updated successfully: {response.json().get('link')}")
         return response.json()
