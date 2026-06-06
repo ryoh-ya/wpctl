@@ -4,7 +4,17 @@ import json
 import functools
 from .singleton import Singleton
 
-class CoogelCustomLogger():
+LEVEL_MAPPING = {
+    "CRITICAL": logging.CRITICAL,
+    "ERROR": logging.ERROR,
+    "WARNING": logging.WARNING,
+    "INFO": logging.INFO,
+    "DEBUG": logging.DEBUG,
+    "NOTSET": logging.NOTSET,
+}
+
+
+class CoogelCustomLogger:
     """Google Cloud Functions用のシンプルなカスタムロガー"""
 
     def __init__(self, name="main"):
@@ -20,12 +30,8 @@ class CoogelCustomLogger():
         if not self.logger.handlers:
             self.logger.addHandler(handler)
 
-    def _log(self, message,level="INFO",**fields):
-        payload = {
-            "serverity": level,
-            "message": f"{message}",
-            **fields
-        }
+    def _log(self, message, level="INFO", **fields):
+        payload = {"serverity": level, "message": f"{message}", **fields}
         self.logger.info(json.dumps(payload, ensure_ascii=False))
 
     def info(self, message, **fields):
@@ -38,18 +44,14 @@ class CoogelCustomLogger():
         self._log(message, level="ERROR", **fields)
 
     def exception(self, message, **fields):
-        payload = {
-            "serverity": "ERROR",
-            "message": f"{message}",
-            **fields
-        }
-        self.logger.info(
-            json.dumps(payload, ensure_ascii=False),
-            exc_info=True
-        )
+        payload = {"serverity": "ERROR", "message": f"{message}", **fields}
+        self.logger.info(json.dumps(payload, ensure_ascii=False), exc_info=True)
 
     def debug(self, message, **fields):
         self._log(message, level="DEBUG", **fields)
+
+    def setLevel(self, level):
+        self.logger.setLevel(level)
 
 
 class CustomLogger(Singleton):
@@ -58,18 +60,27 @@ class CustomLogger(Singleton):
     and log file.It provides a method to log entry and exit of functions.
     """
 
-    def __init__(self, name="main", log_file=None, level=logging.INFO):
+    _initialized = False
+
+    def __init__(self, name="main", log_file=None, level=None):
         if hasattr(self, "_initialized") and self._initialized:
             return  # すでに初期化済みなら何もしない
 
-        if os.getenv("ENV", "local")=="local":
+        if os.getenv("ENV", "local") == "local":
+            if level is None and os.getenv("LOG_LEVEL"):
+                level_str = os.getenv("LOG_LEVEL").upper()
+                _level = LEVEL_MAPPING.get(level_str, logging.INFO)
+            elif level is None:
+                _level = logging.INFO
+            else:
+                _level = level
+
             self.logger = logging.getLogger(name)
-            self.logger.setLevel(level)
+            self.logger.setLevel(_level)
             self.logger.propagate = False
 
             formatter = logging.Formatter(
-                "%(asctime)s %(levelname)s "
-                "[%(filename)s:%(lineno)3d]: %(message)s"
+                "%(asctime)s %(levelname)s [%(filename)s:%(lineno)3d]: %(message)s"
             )
 
             # Console handler
@@ -82,12 +93,11 @@ class CustomLogger(Singleton):
                 fh = logging.FileHandler(log_file, encoding="utf-8")
                 fh.setFormatter(formatter)
                 self.logger.addHandler(fh)
-                self._initialized = True
+
+            self._initialized = True
         elif os.getenv("ENV") in ["dev", "prd"]:
             self.logger = CoogelCustomLogger(name)
             self._initialized = True
-
-
 
     def get_logger(self):
         return self.logger
@@ -103,6 +113,6 @@ class CustomLogger(Singleton):
         return wrapper
 
 
-def get_logger(name="main", log_file=None, level=logging.INFO):
+def get_logger(name="main", log_file=None, level=None):
     custom_logger = CustomLogger(name, log_file, level)
     return custom_logger.get_logger()

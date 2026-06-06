@@ -11,3 +11,6 @@ autodoc
 # security auditing
 pip-audit
 cvss
+# pypi package management
+twine
+build

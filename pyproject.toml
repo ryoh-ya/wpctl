@@ -1,7 +1,21 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
 [project]
-name = "プロジェクト名を設定してください"
-version = "0.1.0"
-description = "プロジェクトの説明"
+name = "wpctl"
+version = "1.0.0"
+description = "WordPress APIを活用して記事を投稿・管理するCLIツール"
+authors = [
+    { name = "Ryoh.Ya", email = "dev.p.ry.yamafuji@gmail.com" }
+]
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "markdown>=3.7",
+    "nh3>=0.2.18",
+    "requests>=2.32",
+]
+[project.scripts]
+wpctl = "wpctl.main:main"
+[tool.setuptools.packages.find]
+where = ["src"]

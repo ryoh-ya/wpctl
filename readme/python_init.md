@@ -13,6 +13,7 @@
     - [ツール: safety](#ツール-safety)
   - [Release](#release)
     - [PyPI](#pypi)
+      - [pyproject.tomlの記載方法](#pyprojecttomlの記載方法)
   - [Git公開時のセキュリティチェック](#git公開時のセキュリティチェック)
     - [gitleaks](#gitleaks)
     - [trufflehog](#trufflehog)
@@ -243,12 +244,22 @@ git push origin vX.Y.Z
    1. `https://pypi.org/project/<PKG_NAME>/`: パッケージの確認
    2. `pip install <PKG_NAME>`: インストールの確認
 
+
 テスト用PyPI(本番前に実行する)
 
 ```sh
 twine upload --repository testpypi dist/*
 pip install -i https://test.pypi.org/simple <PKG_NAME>
 ```
+
+#### pyproject.tomlの記載方法
+
+```tml
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+```
+
 
 ## Git公開時のセキュリティチェック
 

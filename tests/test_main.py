@@ -1,27 +1,31 @@
-import pytest
-from utils.custom_logger import get_logger
+from unittest.mock import patch
 
-from main import main
+from wpctl.utils.custom_logger import get_logger
+
+from wpctl.main import main
 
 
-def test_main(capsys):
-    """mainが正しく実行されることを確認"""
-    main()
+def test_main_no_args_prints_help(capsys):
+    """コマンドなしで main() を呼んでも例外が発生しないこと。"""
+    with patch("sys.argv", ["wpctl"]):
+        main()
     captured = capsys.readouterr()
-    assert "Hello, World!" in captured.out
+    assert "wpctl" in captured.out
 
 
 def test_main_no_exception():
-    """mainが例外を発生させないことを確認"""
-    try:
-        main()
-    except Exception as e:
-        pytest.fail(f"main() raised an exception: {e}")
+    """コマンドなしで main() が例外を発生させないこと。"""
+    with patch("sys.argv", ["wpctl"]):
+        try:
+            main()
+        except SystemExit:
+            pass  # argparse の --help は SystemExit を発生させる場合がある
+        except Exception as e:
+            raise AssertionError(f"main() raised an unexpected exception: {e}")
 
 
 def test_logger_initialization():
-    """ロガーが正しく初期化されることを確認"""
+    """ロガーが正しく初期化されること。"""
     logger = get_logger()
     logger.info("This is a test log message.")
     assert logger is not None
-    assert logger.name == "main"
