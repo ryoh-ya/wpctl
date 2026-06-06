@@ -1,0 +1,108 @@
+import os
+import logging
+import json
+import functools
+from .singleton import Singleton
+
+class CoogelCustomLogger():
+    """Google Cloud Functions用のシンプルなカスタムロガー"""
+
+    def __init__(self, name="main"):
+        self.logger = logging.getLogger(name)
+        self.logger.setLevel(logging.INFO)
+
+        handler = logging.StreamHandler()
+        handler.setLevel(logging.INFO)
+        # メッセージのみ(フォーマットなし)
+        formatter = logging.Formatter("%(message)s")
+        handler.setFormatter(formatter)
+
+        if not self.logger.handlers:
+            self.logger.addHandler(handler)
+
+    def _log(self, message,level="INFO",**fields):
+        payload = {
+            "serverity": level,
+            "message": f"{message}",
+            **fields
+        }
+        self.logger.info(json.dumps(payload, ensure_ascii=False))
+
+    def info(self, message, **fields):
+        self._log(message, level="INFO", **fields)
+
+    def warning(self, message, **fields):
+        self._log(message, level="WARNING", **fields)
+
+    def error(self, message, **fields):
+        self._log(message, level="ERROR", **fields)
+
+    def exception(self, message, **fields):
+        payload = {
+            "serverity": "ERROR",
+            "message": f"{message}",
+            **fields
+        }
+        self.logger.info(
+            json.dumps(payload, ensure_ascii=False),
+            exc_info=True
+        )
+
+    def debug(self, message, **fields):
+        self._log(message, level="DEBUG", **fields)
+
+
+class CustomLogger(Singleton):
+    """
+    Singleton logger class that initializes a logger with a specified name
+    and log file.It provides a method to log entry and exit of functions.
+    """
+
+    def __init__(self, name="main", log_file=None, level=logging.INFO):
+        if hasattr(self, "_initialized") and self._initialized:
+            return  # すでに初期化済みなら何もしない
+
+        if os.getenv("ENV", "local")=="local":
+            self.logger = logging.getLogger(name)
+            self.logger.setLevel(level)
+            self.logger.propagate = False
+
+            formatter = logging.Formatter(
+                "%(asctime)s %(levelname)s "
+                "[%(filename)s:%(lineno)3d]: %(message)s"
+            )
+
+            # Console handler
+            ch = logging.StreamHandler()
+            ch.setFormatter(formatter)
+            self.logger.addHandler(ch)
+
+            # File handler
+            if log_file:
+                fh = logging.FileHandler(log_file, encoding="utf-8")
+                fh.setFormatter(formatter)
+                self.logger.addHandler(fh)
+                self._initialized = True
+        elif os.getenv("ENV") in ["dev", "prd"]:
+            self.logger = CoogelCustomLogger(name)
+            self._initialized = True
+
+
+
+    def get_logger(self):
+        return self.logger
+
+    def log_entry_exit(self, func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            self.logger.info(f"Enter: {func.__qualname__}")
+            result = func(*args, **kwargs)
+            self.logger.info(f"Exit: {func.__qualname__}")
+            return result
+
+        return wrapper
+
+
+def get_logger(name="main", log_file=None, level=logging.INFO):
+    custom_logger = CustomLogger(name, log_file, level)
+    return custom_logger.get_logger()

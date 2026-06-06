@@ -1,0 +1,120 @@
+name: codex-manual-request
+
+on:
+  workflow_dispatch:
+    inputs:
+      request:
+        description: "Request Message"
+        required: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Codex CLI
+        run: |
+          npm install -g @openai/codex
+
+      - name: Login Codex (API key)
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          echo "$OPENAI_API_KEY" | codex login --with-api-key
+          codex login status
+
+      - name: Run Codex (in repo root)
+        run: |
+          set -eu
+          echo "PWD(before)=$(pwd)"
+          echo "GITHUB_WORKSPACE=${GITHUB_WORKSPACE:-}"
+          cd "${GITHUB_WORKSPACE:-.}"
+          echo "PWD(after)=$(pwd)"
+          ls -la
+
+          # 重要: 指示文に「リポジトリ直下/特定パスに作れ」を含めると事故が減る
+          codex exec --dangerously-bypass-approvals-and-sandbox "${{ inputs.request }}" | tee codex-output.md
+
+          echo "---- git status ----"
+          git status --short || true
+
+      - name: Show result
+        run: |
+          sed -n '1,200p' codex-output.md
+
+      - name: Commit & push changes to new branch
+        env:
+          TOKEN: ${{ secrets.GITEA_TOKEN }}
+        run: |
+          set -eu
+
+          BASE_BRANCH="${GITHUB_REF_NAME:-main}"
+          BRANCH="codex/${GITHUB_RUN_ID:-manual}-${GITHUB_RUN_NUMBER:-0}"          
+
+          git config user.name  "codex-bot"
+          git config user.email "codex-bot@users.noreply.github.com"
+
+          git switch -c "$BRANCH"
+          git add -A
+
+          # 何も変更が無ければ終了
+          if git diff --cached --quiet; then
+            echo "No changes to commit; skip push/PR."
+            exit 0
+          fi
+
+          git commit -m "Codex: ${{ inputs.request }}"
+
+          # Push用の認証URLに差し替え（Gitea/GitHub互換で動きやすい）
+          # GITHUB_SERVER_URL / GITHUB_REPOSITORY は act系互換で入ることが多い
+          if [ -z "${TOKEN:-}" ]; then
+            echo "GITEA_TOKEN is empty. Set secrets.GITEA_TOKEN (PAT with repo write)."
+            exit 1
+          fi
+
+          remote_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git"
+          # https://<host>/<owner>/<repo>.git を https://token@<host>/<owner>/<repo>.git にする
+          authed_url="$(echo "$remote_url" | sed -E "s#^https?://#https://${TOKEN}@#")"
+          git remote set-url origin "$authed_url"
+
+          git push -u origin "$BRANCH"
+
+          echo "BASE_BRANCH=$BASE_BRANCH" >> $GITHUB_ENV
+          echo "BRANCH=$BRANCH" >> $GITHUB_ENV
+
+      - name: Create Pull Request(Gitea API)
+        env:
+          TOKEN: ${{ secrets.PR_GITEA_TOKEN }}
+        run: |
+          set -eu
+
+          if [ -z "${TOKEN:-}" ]; then
+            echo "PR_GITEA_TOKEN is not set. Skip PR creation."
+            exit 0
+          fi
+          
+          # Gitea API用の情報を取得
+          API_URL="${GITHUB_SERVER_URL}/api/v1"
+          OWNER_REPO="${GITHUB_REPOSITORY}"
+          BASE_BRANCH="${BASE_BRANCH:-main}"
+          BRANCH="${BRANCH:-}"
+          TITLE="Codex: ${{ inputs.request }}"
+          BODY="This PR was automatically created by Codex workflow."
+
+          # プルリクエスト作成
+          curl -X POST "${API_URL}/repos/${OWNER_REPO}/pulls" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: token ${TOKEN}" \
+            -d @- <<EOF
+          {
+            "head": "${BRANCH}",
+            "base": "${BASE_BRANCH}",
+            "title": "${TITLE}",
+            "body": "${BODY}"
+          }            
+          EOF

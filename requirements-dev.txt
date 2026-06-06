@@ -1,0 +1,13 @@
+# testing tools
+pytest
+pytest-cov
+coverage-badge
+# Linting tool
+ruff==0.14.7
+# Docs
+sphinx
+sphinx-rtd-theme
+autodoc
+# security auditing
+pip-audit
+cvss

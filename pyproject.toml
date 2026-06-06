@@ -1,0 +1,7 @@
+[project]
+name = "プロジェクト名を設定してください"
+version = "0.1.0"
+description = "プロジェクトの説明"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
