@@ -50,6 +50,7 @@ wpctl post update --id <ID> [-t "記事のタイトル"] <FilePath>
 | ----------------- | ---- | --------------------------- |
 | `WP_USER`         | true | WordPressのユーザー名       |
 | `WP_APP_PASSWORD` | true | WordPressのアプリパスワード |
+| `WP_SITE_URL`     | true | WordPressのサイトURL        |
 
 > `.env` ファイルは非対応です。あらかじめシェルの環境変数に設定してください。
 
