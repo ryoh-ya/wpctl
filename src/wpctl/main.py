@@ -1,9 +1,26 @@
 import argparse
+import os
+import sys
 
 from wpctl.run import run
 from wpctl.utils.custom_logger import get_logger
 
 logger = get_logger(__name__)
+
+_REQUIRED_ENV_VARS = ["WP_SITE_URL", "WP_USER", "WP_APP_PASSWORD"]
+
+
+def _validate_env() -> None:
+    """必須環境変数が設定されているか検証する。
+
+    Raises:
+        SystemExit: 未設定の環境変数が存在する場合
+    """
+    missing = [var for var in _REQUIRED_ENV_VARS if not os.environ.get(var)]
+    if missing:
+        for var in missing:
+            print(f"Error: 環境変数 {var} が設定されていません。", file=sys.stderr)
+        sys.exit(1)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -56,6 +73,7 @@ def main():
         parser.print_help()
         return
 
+    _validate_env()
     logger.info(f"wpctl {args.command} {args.subcommand}")
     run(args)
 

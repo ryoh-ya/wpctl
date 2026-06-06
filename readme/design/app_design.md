@@ -71,6 +71,7 @@ wpctl post update --id <ID> [-t "記事のタイトル"] <FilePath>
 | --------------- | ---------------- | ---- | --------------------------------------------- |
 | WP_USER         | ユーザー名       | true | Wordpressに投稿するユーザー名を指定する       |
 | WP_APP_PASSWORD | アプリパスワード | true | Wordpressで設定するアプリパスワードを指定する |
+| WP_SITE_URL          | ブログURL        | true | WordpressのURLを指定する                      |
 
 
 ## 基本仕様

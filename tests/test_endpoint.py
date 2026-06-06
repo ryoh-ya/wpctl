@@ -123,11 +123,12 @@ class TestMain:
     """main() のエンドツーエンド動作を確認する。"""
 
     @patch("wpctl.main.run")
-    def test_main_calls_run_with_parsed_args(self, mock_run):
-        """main() が引数を正しくパースして run() を呼び出すこと。"""
-        with patch(
-            "sys.argv", ["wpctl", "post", "create", "article.md"]
-        ):
+    def test_main_calls_run_with_parsed_args(self, mock_run, monkeypatch):
+        """環境変数が設定済みの場合、run() が正しく呼ばれること。"""
+        monkeypatch.setenv("WP_SITE_URL", "https://example.com")
+        monkeypatch.setenv("WP_USER", "user")
+        monkeypatch.setenv("WP_APP_PASSWORD", "pass")
+        with patch("sys.argv", ["wpctl", "post", "create", "article.md"]):
             from wpctl.main import main
             main()
         mock_run.assert_called_once()
@@ -143,3 +144,48 @@ class TestMain:
             from wpctl.main import main
             main()
         mock_run.assert_not_called()
+
+
+class TestValidateEnv:
+    """_validate_env() の環境変数チェックを確認する。"""
+
+    def test_exits_when_both_missing(self, monkeypatch):
+        """両方の環境変数が未設定の場合は SystemExit(1) になること。"""
+        monkeypatch.delenv("WP_SITE_URL", raising=False)
+        monkeypatch.delenv("WP_USER", raising=False)
+        monkeypatch.delenv("WP_APP_PASSWORD", raising=False)
+        from wpctl.main import _validate_env
+        with pytest.raises(SystemExit) as exc_info:
+            _validate_env()
+        assert exc_info.value.code == 1
+
+    def test_exits_when_one_missing(self, monkeypatch):
+        """片方の環境変数が未設定の場合も SystemExit(1) になること。"""
+        monkeypatch.setenv("WP_SITE_URL", "https://example.com")
+        monkeypatch.setenv("WP_USER", "user")
+        monkeypatch.delenv("WP_APP_PASSWORD", raising=False)
+        from wpctl.main import _validate_env
+        with pytest.raises(SystemExit) as exc_info:
+            _validate_env()
+        assert exc_info.value.code == 1
+
+    def test_passes_when_all_set(self, monkeypatch):
+        """全ての環境変数が設定されている場合は正常終了すること。"""
+        monkeypatch.setenv("WP_SITE_URL", "https://example.com")
+        monkeypatch.setenv("WP_USER", "user")
+        monkeypatch.setenv("WP_APP_PASSWORD", "pass")
+        from wpctl.main import _validate_env
+        _validate_env()  # 例外が発生しないこと
+
+    def test_error_message_contains_var_name(self, monkeypatch, capsys):
+        """エラーメッセージに未設定の変数名が含まれること。"""
+        monkeypatch.delenv("WP_SITE_URL", raising=False)
+        monkeypatch.delenv("WP_USER", raising=False)
+        monkeypatch.delenv("WP_APP_PASSWORD", raising=False)
+        from wpctl.main import _validate_env
+        with pytest.raises(SystemExit):
+            _validate_env()
+        captured = capsys.readouterr()
+        assert "WP_SITE_URL" in captured.err
+        assert "WP_USER" in captured.err
+        assert "WP_APP_PASSWORD" in captured.err
