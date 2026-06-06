@@ -5,8 +5,12 @@
 
 ## Requests
 
-`readme/design/app_design.md`を見ながら、README.mdおよびtomlなどの設定ファイルを修正してください。
-- パッケージ名を修正して、READMEに概要を記載してください。
-- CLIツールの場合は`src/<ツール名>`としてください
+`readme/design/app_design.md`を見ながら下記を修正してください
+- CLIツールの場合は`src/<ツール名>`としてください。
+- tomlなどの設定ファイルを修正してください。
+- README.mdに概要を記載してください。ただし既存の`Tool`、`Lint`はそのままです
+  
+ 
+
 
 

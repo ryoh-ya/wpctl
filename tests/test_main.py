@@ -24,4 +24,4 @@ def test_logger_initialization():
     logger = get_logger()
     logger.info("This is a test log message.")
     assert logger is not None
-    assert logger.name == "main"
+    assert logger.name == "wpctl.main"
