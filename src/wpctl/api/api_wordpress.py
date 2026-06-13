@@ -190,3 +190,60 @@ class ApiWordpress:
             raise WordPressAPIError(f"記事の更新に失敗しました: {e}") from e
         logger.info(f"Post updated successfully: {response.json().get('link')}")
         return response.json()
+
+    def get_posts(
+        self,
+        search: str | None = None,
+        status: str = "any",
+        per_page: int = 10,
+        page: int = 1,
+    ) -> tuple[list[dict], int]:
+        """記事一覧を取得する。
+
+        Args:
+            search: 検索キーワード
+            status: ステータスフィルター（'publish' / 'draft' / 'any' など）
+            per_page: 1ページあたりの件数
+            page: ページ番号
+
+        Returns:
+            (記事リスト, 総件数) のタプル
+
+        Raises:
+            WordPressAPIError: API呼び出しに失敗した場合
+        """
+        url = f"{self._site_url}/wp-json/wp/v2/posts"
+        params: dict = {"per_page": per_page, "page": page, "status": status}
+        if search:
+            params["search"] = search
+        try:
+            response = requests.get(url, params=params, auth=self._auth)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"記事一覧の取得に失敗しました: {e}")
+            raise WordPressAPIError(f"記事一覧の取得に失敗しました: {e}") from e
+        total = int(response.headers.get("X-WP-Total", len(response.json())))
+        logger.info(f"Posts retrieved: {len(response.json())} / {total}")
+        return response.json(), total
+
+    def get_post(self, post_id: int) -> dict:
+        """記事の詳細を取得する。
+
+        Args:
+            post_id: 取得する記事のID
+
+        Returns:
+            記事の詳細情報
+
+        Raises:
+            WordPressAPIError: API呼び出しに失敗した場合
+        """
+        url = f"{self._site_url}/wp-json/wp/v2/posts/{post_id}"
+        try:
+            response = requests.get(url, auth=self._auth)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"記事の取得に失敗しました: id={post_id}, {e}")
+            raise WordPressAPIError(f"記事の取得に失敗しました: {e}") from e
+        logger.info(f"Post retrieved: id={post_id}")
+        return response.json()

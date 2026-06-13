@@ -12,6 +12,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "markdown>=3.7",
+    "markdownify>=0.13",
     "nh3>=0.2.18",
     "requests>=2.32",
 ]

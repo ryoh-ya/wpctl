@@ -20,6 +20,8 @@ def run(args: argparse.Namespace) -> None:
         raise ValueError(f"Unknown command: {args.command}")
 
 
+
+
 def _run_post(args: argparse.Namespace) -> None:
     """post コマンドのサブコマンドを振り分ける。
 
@@ -30,6 +32,10 @@ def _run_post(args: argparse.Namespace) -> None:
         _run_post_create(args)
     elif args.subcommand == "update":
         _run_post_update(args)
+    elif args.subcommand == "get":
+        _run_post_get(args)
+    elif args.subcommand == "show":
+        _run_post_show(args)
     else:
         raise ValueError(f"Unknown subcommand: {args.subcommand}")
 
@@ -66,6 +72,7 @@ def _run_post_create(args: argparse.Namespace) -> None:
             excerpt=args.excerpt,
             categories=_parse_csv(args.categories),
             tags=_parse_csv(args.tags),
+            content_format=args.content_format,
         )
     except (FileReadError, WordPressAPIError) as e:
         logger.error(str(e))
@@ -90,7 +97,99 @@ def _run_post_update(args: argparse.Namespace) -> None:
             excerpt=args.excerpt,
             categories=_parse_csv(args.categories),
             tags=_parse_csv(args.tags),
+            content_format=args.content_format,
         )
     except (FileReadError, WordPressAPIError) as e:
         logger.error(str(e))
         sys.exit(1)
+
+
+def _run_post_get(args: argparse.Namespace) -> None:
+    """記事一覧を取得して表示する。
+
+    Args:
+        args: argparseで解析された引数
+    """
+    from wpctl.commands.get import run as get_run
+    try:
+        posts, total = get_run(
+            search=args.search,
+            status=args.status,
+            per_page=args.per_page,
+            page=args.page,
+        )
+        _print_posts_table(posts, total, page=args.page, per_page=args.per_page)
+    except WordPressAPIError as e:
+        logger.error(str(e))
+        sys.exit(1)
+
+
+def _run_post_show(args: argparse.Namespace) -> None:
+    """記事の詳細を取得して表示する。
+
+    Args:
+        args: argparseで解析された引数
+    """
+    from wpctl.commands.show import run as show_run
+    try:
+        post = show_run(post_id=args.post_id)
+        _print_post_detail(post, fmt=args.format)
+    except WordPressAPIError as e:
+        logger.error(str(e))
+        sys.exit(1)
+
+
+def _print_posts_table(posts: list[dict], total: int, page: int, per_page: int) -> None:
+    if not posts:
+        print("記事が見つかりませんでした。")
+        return
+
+    rows = []
+    for p in posts:
+        rows.append({
+            "id": str(p.get("id", "")),
+            "status": p.get("status", ""),
+            "date": (p.get("date", "") or "")[:10],
+            "title": p.get("title", {}).get("rendered", ""),
+        })
+
+    w_id = max(len("ID"), max(len(r["id"]) for r in rows))
+    w_status = max(len("STATUS"), max(len(r["status"]) for r in rows))
+    w_date = max(len("DATE"), max(len(r["date"]) for r in rows))
+
+    header = f"{'ID'.ljust(w_id)}  {'STATUS'.ljust(w_status)}  {'DATE'.ljust(w_date)}  TITLE"
+    sep = "-" * len(header)
+    print(header)
+    print(sep)
+    for r in rows:
+        print(f"{r['id'].ljust(w_id)}  {r['status'].ljust(w_status)}  {r['date'].ljust(w_date)}  {r['title']}")
+
+    offset = (page - 1) * per_page
+    shown_from = offset + 1
+    shown_to = offset + len(posts)
+    print(f"\n{shown_from}〜{shown_to}件 / 全{total}件")
+
+
+def _print_post_detail(post: dict, fmt: str = "text") -> None:
+    title = post.get("title", {}).get("rendered", "")
+    excerpt_html = post.get("excerpt", {}).get("rendered", "")
+    content_html = post.get("content", {}).get("rendered", "")
+
+    print(f"ID      : {post.get('id', '')}")
+    print(f"タイトル: {title}")
+    print(f"状態    : {post.get('status', '')}")
+    print(f"日時    : {post.get('date', '')}")
+    print(f"リンク  : {post.get('link', '')}")
+
+    if excerpt_html:
+        from markdownify import markdownify
+        print(f"抜粋    : {markdownify(excerpt_html).strip()}")
+
+    print()
+    print("─" * 60)
+
+    if fmt == "md":
+        from markdownify import markdownify
+        print(markdownify(content_html).strip())
+    else:
+        print(content_html.strip())

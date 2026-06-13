@@ -74,6 +74,13 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="タグIDまたは名前（カンマ区切り、例: tech,python）",
     )
+    create_parser.add_argument(
+        "--content-format",
+        dest="content_format",
+        choices=["html", "md"],
+        default="html",
+        help="--content の形式（html / md）（デフォルト: html）",
+    )
 
     update_parser = post_subparsers.add_parser("update", help="記事を更新する")
     update_parser.add_argument(
@@ -113,6 +120,45 @@ def _build_parser() -> argparse.ArgumentParser:
         "--tags",
         default=None,
         help="タグIDまたは名前（カンマ区切り、例: tech,python）",
+    )
+    update_parser.add_argument(
+        "--content-format",
+        dest="content_format",
+        choices=["html", "md"],
+        default="html",
+        help="--content の形式（html / md）（デフォルト: html）",
+    )
+
+    get_parser = post_subparsers.add_parser("get", help="記事一覧を取得する")
+    get_parser.add_argument(
+        "--search", default=None,
+        help="検索キーワード",
+    )
+    get_parser.add_argument(
+        "--status", "-s",
+        default="any",
+        help="ステータスフィルター（publish / draft / any）（デフォルト: any）",
+    )
+    get_parser.add_argument(
+        "--per-page", dest="per_page", type=int, default=10,
+        help="1ページあたりの件数（デフォルト: 10）",
+    )
+    get_parser.add_argument(
+        "--page", type=int, default=1,
+        help="ページ番号（デフォルト: 1）",
+    )
+
+    show_parser = post_subparsers.add_parser("show", help="記事の詳細を取得する")
+    show_parser.add_argument(
+        "post_id", metavar="ID", type=int,
+        help="取得する記事のID",
+    )
+    show_parser.add_argument(
+        "--format", "-f",
+        dest="format",
+        choices=["text", "md"],
+        default="text",
+        help="コンテンツの出力フォーマット（text / md）（デフォルト: text）",
     )
 
     return parser
