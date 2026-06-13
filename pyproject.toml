@@ -3,7 +3,7 @@ requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 [project]
 name = "wpctl"
-version = "1.0.1"
+version = "1.1.0"
 description = "WordPress APIを活用して記事を投稿・管理するCLIツール"
 authors = [
     { name = "Ryoh.Ya", email = "dev.p.ry.yamafuji@gmail.com" }
@@ -12,6 +12,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "markdown>=3.7",
+    "markdownify>=0.13",
     "nh3>=0.2.18",
     "requests>=2.32",
 ]
