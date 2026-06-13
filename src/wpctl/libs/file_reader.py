@@ -68,6 +68,34 @@ def _strip_first_h1(text: str) -> str:
     return stripped.lstrip("\n")
 
 
+def convert_markdown_string(text: str, strip_h1: bool = False) -> str:
+    """Markdown文字列をHTMLに変換する。
+
+    Args:
+        text: Markdown形式のテキスト
+        strip_h1: True の場合、第一レベル見出しを除去してから変換する
+
+    Returns:
+        HTML文字列
+    """
+    if strip_h1:
+        text = _strip_first_h1(text)
+    return convert(text)
+
+
+def extract_title_from_markdown(text: str) -> str | None:
+    """Markdown文字列から第一レベル見出しのテキストを取得する。
+
+    Args:
+        text: Markdown形式のテキスト
+
+    Returns:
+        見出しのテキスト。見つからない場合は None
+    """
+    match = _H1_PATTERN.search(text)
+    return match.group(1).strip() if match else None
+
+
 def resolve_title(file_path: str, title: str | None) -> str:
     """タイトルを解決する。
 
