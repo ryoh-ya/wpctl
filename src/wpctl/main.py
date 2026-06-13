@@ -40,25 +40,79 @@ def _build_parser() -> argparse.ArgumentParser:
 
     create_parser = post_subparsers.add_parser("create", help="記事を投稿する")
     create_parser.add_argument(
-        "file_path", metavar="FilePath", help="投稿するファイルのパス"
+        "file_path", metavar="FilePath", nargs="?", default=None,
+        help="投稿するファイルのパス（--content と排他）",
+    )
+    create_parser.add_argument(
+        "--content", "-c",
+        default=None,
+        help="投稿するHTML文字列（FilePath と排他）",
     )
     create_parser.add_argument(
         "--title", "-t",
-        default="タイトル未設定",
-        help="記事のタイトル（デフォルト: タイトル未設定）",
+        default=None,
+        help="タイトル（省略時: Markdownの第一見出し / デフォルト: タイトル未設定）",
+    )
+    create_parser.add_argument(
+        "--status", "-s",
+        choices=["draft", "publish"],
+        default="draft",
+        help="記事のステータス（デフォルト: draft）",
+    )
+    create_parser.add_argument(
+        "--excerpt", "-e",
+        default=None,
+        help="記事の抜粋",
+    )
+    create_parser.add_argument(
+        "--categories",
+        default=None,
+        help="カテゴリーIDまたは名前（カンマ区切り、例: 1,2,3）",
+    )
+    create_parser.add_argument(
+        "--tags",
+        default=None,
+        help="タグIDまたは名前（カンマ区切り、例: tech,python）",
     )
 
     update_parser = post_subparsers.add_parser("update", help="記事を更新する")
     update_parser.add_argument(
-        "file_path", metavar="FilePath", help="投稿するファイルのパス"
+        "file_path", metavar="FilePath", nargs="?", default=None,
+        help="投稿するファイルのパス（--content と排他）",
+    )
+    update_parser.add_argument(
+        "--content", "-c",
+        default=None,
+        help="投稿するHTML文字列（FilePath と排他）",
     )
     update_parser.add_argument(
         "--id", dest="post_id", type=int, required=True, help="更新する記事のID"
     )
     update_parser.add_argument(
         "--title", "-t",
-        default="タイトル未設定",
-        help="記事のタイトル（デフォルト: タイトル未設定）",
+        default=None,
+        help="タイトル（省略時: Markdownの第一見出し / デフォルト: タイトル未設定）",
+    )
+    update_parser.add_argument(
+        "--status", "-s",
+        choices=["draft", "publish"],
+        default=None,
+        help="記事のステータス（省略時: 現在のステータスを維持）",
+    )
+    update_parser.add_argument(
+        "--excerpt", "-e",
+        default=None,
+        help="記事の抜粋",
+    )
+    update_parser.add_argument(
+        "--categories",
+        default=None,
+        help="カテゴリーIDまたは名前（カンマ区切り、例: 1,2,3）",
+    )
+    update_parser.add_argument(
+        "--tags",
+        default=None,
+        help="タグIDまたは名前（カンマ区切り、例: tech,python）",
     )
 
     return parser

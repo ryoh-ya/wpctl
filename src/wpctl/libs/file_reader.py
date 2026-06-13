@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 from wpctl.libs.md_to_html import convert
@@ -6,13 +7,16 @@ from wpctl.utils.custom_logger import get_logger
 logger = get_logger(__name__)
 
 SUPPORTED_EXTENSIONS = {".txt", ".html", ".md"}
+DEFAULT_TITLE = "タイトル未設定"
+
+_H1_PATTERN = re.compile(r"^#\s+(.+)", re.MULTILINE)
 
 
 class FileReadError(Exception):
     """ファイル読み込みエラー。"""
 
 
-def read_file(file_path: str) -> str:
+def read_file(file_path: str, strip_h1: bool = False) -> str:
     """ファイルを読み込んで文字列として返す。
 
     Markdownファイルはサニタイズ済みHTMLに変換して返す。
@@ -20,6 +24,7 @@ def read_file(file_path: str) -> str:
 
     Args:
         file_path: 読み込むファイルのパス
+        strip_h1: True の場合、Markdownの第一レベル見出しを除去してから変換する
 
     Returns:
         ファイルの内容（Markdownの場合はHTML変換済み）
@@ -43,6 +48,49 @@ def read_file(file_path: str) -> str:
     logger.info(f"ファイルを読み込みました: {file_path}")
 
     if ext == ".md":
+        if strip_h1:
+            text = _strip_first_h1(text)
         return convert(text)
 
     return text
+
+
+def _strip_first_h1(text: str) -> str:
+    """Markdownテキストから最初の第一レベル見出し行を除去する。
+
+    Args:
+        text: Markdown形式のテキスト
+
+    Returns:
+        第一レベル見出しを除去したテキスト
+    """
+    stripped = _H1_PATTERN.sub("", text, count=1)
+    return stripped.lstrip("\n")
+
+
+def resolve_title(file_path: str, title: str | None) -> str:
+    """タイトルを解決する。
+
+    優先順位:
+        1. 引数で指定されたタイトル（-t / --title）
+        2. Markdownファイルの第一レベル見出し（# 見出し）
+        3. デフォルト値「タイトル未設定」
+
+    Args:
+        file_path: 対象ファイルのパス
+        title: CLI引数で指定されたタイトル（未指定の場合は None）
+
+    Returns:
+        解決済みのタイトル文字列
+    """
+    if title is not None:
+        return title
+
+    path = Path(file_path)
+    if path.exists() and path.suffix.lower() == ".md":
+        text = path.read_text(encoding="utf-8")
+        match = _H1_PATTERN.search(text)
+        if match:
+            return match.group(1).strip()
+
+    return DEFAULT_TITLE

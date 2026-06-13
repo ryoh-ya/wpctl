@@ -19,7 +19,7 @@ class TestBuildParser:
         assert args.command == "post"
         assert args.subcommand == "create"
         assert args.file_path == "article.md"
-        assert args.title == "タイトル未設定"
+        assert args.title is None
 
     def test_post_create_with_title_long(self):
         """post create に --title を渡した場合にタイトルが設定されること。"""
@@ -36,9 +36,9 @@ class TestBuildParser:
         assert args.title == "Short Title"
 
     def test_post_create_missing_file_path(self):
-        """post create に FilePath がない場合は SystemExit が発生すること。"""
-        with pytest.raises(SystemExit):
-            self.parser.parse_args(["post", "create"])
+        """post create に FilePath がない場合は file_path が None になること（--content で代替可能）。"""
+        args = self.parser.parse_args(["post", "create"])
+        assert args.file_path is None
 
     def test_post_update_required_args(self):
         """post update に必須引数を渡した場合に正しくパースされること。"""
@@ -49,7 +49,7 @@ class TestBuildParser:
         assert args.subcommand == "update"
         assert args.post_id == 42
         assert args.file_path == "article.md"
-        assert args.title == "タイトル未設定"
+        assert args.title is None
 
     def test_post_update_with_title(self):
         """post update に --title を渡した場合にタイトルが設定されること。"""
@@ -64,9 +64,9 @@ class TestBuildParser:
             self.parser.parse_args(["post", "update", "article.md"])
 
     def test_post_update_missing_file_path(self):
-        """post update に FilePath がない場合は SystemExit が発生すること。"""
-        with pytest.raises(SystemExit):
-            self.parser.parse_args(["post", "update", "--id", "1"])
+        """post update に FilePath がない場合は file_path が None になること（--content で代替可能）。"""
+        args = self.parser.parse_args(["post", "update", "--id", "1"])
+        assert args.file_path is None
 
     def test_post_update_id_is_int(self):
         """post update の --id は整数として解析されること。"""
